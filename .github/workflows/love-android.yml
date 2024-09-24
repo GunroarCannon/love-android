@@ -1,0 +1,29 @@
+
+name: Love2D Android Build
+
+on:
+  push:
+    branches:
+      - my-love-apk
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Android SDK
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          sudo apt-get update && sudo apt-get install -y android-sdk
+          android update sdk --no-ui --all --filter tools
+      - name: Build Love2D Android
+        run: |
+          cd love-android
+          ./gradlew assembleEmbedRecordDebug
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: love-android.apk
+          path: love-android/build/outputs/apk/embed-record-debug.apk
+```
