@@ -26,7 +26,7 @@ jobs:
         java-version: 17
         cache: gradle
     - name: Build Normal Flavor
-      run: bash ./gradlew assembleNormalRecord${{ matrix.build_type }}
+      run: bash ./gradlew assembleEmbedRecord${{ matrix.build_type }}
     - name: Build Release-specific Binaries
       if: ${{ matrix.build_type == 'Release' }}
       run: bash ./gradlew bundleNormalNoRecordRelease bundleEmbedRecordRelease bundleEmbedNoRecordRelease
