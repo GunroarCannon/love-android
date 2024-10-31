@@ -229,7 +229,8 @@ Game = require "toybox.entities.Game"
 local SETTINGS_FILE = "settings.dat"
 useLumeSer = true
 local function getSettingsToLoad() log("load")
-    if love.filesystem.getInfo(SETTINGS_FILE) and love.filesystem.getInfo(SETTINGS_FILE).size > 0 then
+    local fileDat = love.filesystem.getInfo(SETTINGS_FILE)
+    if fileDat and (fileDat.size or 0) > 0 then
         -- love.filesystem.load(SETTINGS_FILE,"r")()--
         local d = (useLumeSer and binser.deserialize(love.filesystem.newFile(SETTINGS_FILE,"r"):read()) or
         bitser.loadLoveFile(SETTINGS_FILE, "r") )
