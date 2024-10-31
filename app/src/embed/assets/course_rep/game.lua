@@ -847,7 +847,7 @@ function GameScreen:setup()
     end
     
     self:after(time2, function()
-        self:loadNewDialog(not gdata.seenCard and {
+        self:loadNewDialog(not gdata.seenCardRules and {
             isNarrator = true,
             text = "Don't let any of the bars above \n(faith, #grade, ~ @popularity ~ and # money ~ ) \n get too low...",--n:draw
             next = {
@@ -864,10 +864,13 @@ function GameScreen:setup()
                 }
             }
         })--startD)--, startC)
+        
+        gdata.seenCardRules = true
     end)
     
-    gdata.seenCard = true
     
+    game.startedGameOnce = true
+        
     self.timer:every({1,1.5,1.3,2}, function()
         local f = self.face
         if not f then
@@ -1599,6 +1602,9 @@ function GameScreen:loadNewDialog(data, char)
             end
         end
     end
+    
+    
+    local charData = characters[char]
     
     if char and not dataGiven then
         -- so that reloading of characters won't be allowed entering and leaving the menu
@@ -2755,9 +2761,15 @@ function Menu2:setup()
     
     local function start()
         local idk = not game.startedGameOnce
-        self:loadNewDialog({text=gdata.gamePlayed and "Swipe to Decide...\n \n " or " \n You are Course Rep.", isNarirator=true, yes={text="@Begin Semester"}, no={text="&colors.black #View highscores"}, isLoss=idk, source=idk and "idk.png"}, not gdata.gamePlayed and "Swipe to make decisions..." or idk and "") --label2
+        self:loadNewDialog({
+            text=gdata.gamePlayed and "Swipe to Decide...\n \n " or " \n You are Course Rep.",
+            isNarirator=true,
+            yes={text="@Begin Semester"},
+            no={text="&colors.black #View highscores"},
+            isLoss=idk, source=idk and "idk.png"
+        }, not gdata.gamePlayed and "Swipe to make decisions..." or idk and "") --label2
+        
         --self.label2.texty.ftont = mario_font18
-        game.startedGameOnce = true
         gdata.gamePlayed = true
         
         local function demonstrate()
@@ -2884,6 +2896,7 @@ function Menu:setup(k)
             -- game:startGame()
         end)
         self:tween(.7, self.playImage, {alpha=0}, "out-quad")
+        self:tween(.7, self.whatsappImage, {alpha=0}, "out-quad")
         self:tween(.6, n, {y=H()+n.h+10}, "out-quad")
         for x = 1, 3 do
             local nn = self[string.format("title%s", x)]
@@ -2907,9 +2920,60 @@ function Menu:setup(k)
     self.play.bgColor = {0,0,0,0}
     self.playImage = self.play:addImage("title/play_up.png")
     self.playImage.alpha = 0
+    
+    
+    local jigg
+    
+    do
+    local w = 105
+    self.whatsapp = gooi.newButton({
+        x = W()-w-10,--/2-w/2,
+        y = 10, H()-w-100,
+        w = w, h = w+1,
+        text=""
+    }):onRelease(function(n)
+        if self.playImage.alpha <= .7 then-- ~= "title/play_down.png" then
+            return
+        end
+        
+        jigg()
+        playGooiSound("facebook_sound")
+        
+        
+    end)
+    
+    
+    self.whatsappJiggle = gooi.newLabel({
+        x = W()-w-10,--/2-w/2,
+        y = 10, H()-w-100,
+        w = w, h = w+1,
+        text=""
+    })
+    
+    end
+    
+    
+            
+    function jigg()
+        self.whatsappJiggle:shake(40, .5, 30)
+    end
+            
+
+    
+    self.whatsappJiggle.drawRect = false
+    self.whatsappJiggle.showBorder = false
+    self.whatsappJiggle.bgColor = {0,0,0,0}
+    
+    
+    self.whatsapp.drawRect = false
+    self.whatsapp.showBorder = false
+    self.whatsapp.bgColor = {0,0,0,0}
+    self.whatsappImage = self.whatsapp:addImage("title/whatsapp.png")
+    
     --gooi.removeComponent(self.play)
     
     self.tapAlpha = 0
+    self.tapAlpha2 = 0
     
     local oy = 100
     
@@ -2970,6 +3034,7 @@ function Menu:setup(k)
     
         self:tween(1.3, nn, {w=W(), h=H()}, "in-bounce",function()
             self:tween(.65, self, {tapAlpha=1}, "in-quad")
+            self:tween(1.4, self, {tapAlpha2=1}, "in-quad", jigg)
             self:every(5, self.makeNewText)
             self.makeNewText()
         end)
@@ -3096,7 +3161,13 @@ function Menu:draw(dt)
     local r,g,b,a = set_color(1,1,1,self.tapAlpha)
     n = math.floor(self.count)
     local img = game:getAsset(string.format("title/tap%s.png", n))
+    
     self.playImage.alpha = self.tapAlpha-- = string.format("play%s.png",n)
+    self.whatsappImage.alpha = self.tapAlpha2
+    self.whatsapp.angle = self.whatsappJiggle.shake_x
+    
+    gooi.drawComponent(self.whatsapp)
+    
     local _w, _h = resizeImage(img, W(), H())
    -- lg.draw(img, 0, 0, 0, _w, _h)
     
@@ -3523,7 +3594,7 @@ function game:setup()
     self.data = toybox.getData("course_rep")
     gdata = self.data
     
-    gdata.energy = gdata.energy or 3
+    gdata.energy = gdata.energy or 2
     gdata.energyTimer = 0
     
     gdata.unlocked = gdata.unlocked or {}
