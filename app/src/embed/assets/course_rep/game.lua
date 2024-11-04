@@ -38,6 +38,9 @@ colors.darkdarklime = {93/255*.7, 226/255*.7, 167/255*.7}
 colors.lighterlime = {93/255*1.1, 226/255*1.0, 167/255}
 local e_url = ""
 
+
+WHATSAPP_CHAT_URL = "https://chat.whatsapp.com/EZ2L0VVTkncDK0esgmwBzy"
+
 GAME_ID = "dev_23af70886adb4dd6b6005f3dd2c1bfb9"
 
 --TEST IDS
@@ -397,6 +400,7 @@ NotifyPlayerDonorReward = function(self, helped)
             end
             
             addGPScore(self, reward, "Extra Credit: %sgp")
+            game:saveData()
         end
         
         noButton:onRelease(no)
@@ -525,6 +529,8 @@ function GameScreen:showRewards(energyReward, funct)
                     self:after(time+1, funct)
                 end
             end
+            
+            game:saveData()
         end
         noButton:onRelease(no)
         noButton.enabled = false
@@ -1697,7 +1703,7 @@ function GameScreen:loadNewDialog(data, char)
     end
     
     if not self.isMenu then
-        self:every(1, funcg)
+        -- self:every(1, funcg)
     end
     
     self.label = label
@@ -1713,6 +1719,12 @@ function GameScreen:loadNewDialog(data, char)
     
     self.choose.y = self.choose.y + 80
     self.choose.ogx = self.choose.x
+    
+    
+    self.choose.odraw = self.choose.odraw or self.choose.draw
+    self.choose.odrawSpecifics = self.choose.odrawSpecifics or self.choose.drawSpecifics
+    self.choose.draw = null
+    self.choose.drawSpecifics = null
     
     self.choose:onPress(function(r)
         self.touched = true
@@ -2091,7 +2103,7 @@ function GameScreen:draw_before_gooi(dt)
     if self.label2 then
         self.label2.fgColor[4] = self.label2.text == "" and 0 or ((math.abs(self.diffx or 0)-30)/250)+0
         if self.scoreLabel then
-            self.scoreLabel.fgColor[4] = 1-self.label2.fgColor[4]*1.7*(self.diffx and self.diffx>0 and 2 or 1)
+            self.scoreLabel.fgColor[4] = lume.max(self.isMenu and .25 or 0, 1-self.label2.fgColor[4]*1.7*(self.diffx and self.diffx>0 and 2 or 1))
             self.scoreLabel:setText(self.scoreLabel.text)
         end
     end
@@ -2123,6 +2135,8 @@ function GameScreen:draw_before_gooi(dt)
     end
 end
 
+local nully = function() end
+
 function GameScreen:draw()
     if self.label2 then
         set_color(0,0,0,(self.label2.fgColor[4])/1.4)
@@ -2131,6 +2145,14 @@ function GameScreen:draw()
         draw_rect("fill", -W(), fy, W()*4, fh+H())
         gooi.drawComponent(self.label2)
     end
+        
+    if self.choose then
+        self.choose.draw = self.choose.odraw
+        self.choose.drawSpecifics = self.choose.odrawSpecifics
+        gooi.drawComponent(self.choose)
+        self.choose.draw = nully
+        self.choose.drawSpecifics = nully
+    end
     
     if self.egP and type(self.egP) == "table" then
         gooi.drawComponent(self.egP, true)
@@ -2138,6 +2160,15 @@ function GameScreen:draw()
             gooi.drawComponent(self.egP.b2)
         end
     end
+    
+    
+    if self.quit and type(self.quit) == "table" then
+        gooi.drawComponent(self.quit, true)
+        if self.quit.b2 then
+            gooi.drawComponent(self.quit.b2)
+        end
+    end
+    
     
     if self.rating then
         -- gooi.drawComponent(self.rating)
@@ -2156,6 +2187,80 @@ function Menu2:keyreleased(k)
     if self.egP and self.egP~=true and self.egP.cancel then
         self.egP.cancel(self.egP)
         self.egP.cancel = nil
+        
+    elseif k == "escape" and not self.quit then-- return self:showRewards(3) else
+        local w, h = W()*.7, H()*.45
+        local panel = gooi.newPanel({
+            padding = 20,
+            x=W()/2-w/2, y=H()/2-h/2,
+            w=w, h=h,
+            layout = "grid 4x3"
+        }):setColspan(1,1,3):setRowspan(1,1,3):setOpaque(true)
+        panel:addImage("resultSlipUI.png")
+        panel.onlyImage = true
+        panel.preDraw = greyDraw
+        
+        panel.ogy = panel.y
+        panel.y = -panel.h*2
+        panel.cover_alpha = 0
+        
+        local label = gooi.newLabel({text=getValue(quitTexts)})
+        panel:add(label)
+        
+        local noButton = gooi.newButton({text=""})
+        noButton:addImage("no.png")
+        noButton.onlyImage = true
+        panel:add(noButton)
+        
+        local yesButton = gooi.newButton({text=""})
+        yesButton:addImage("yes.png")
+        yesButton.onlyImage = true
+        panel:add(yesButton,4,3)
+        
+        local time = .7
+        panel.outy = panel.y
+        self:tween_in_ui(panel, time)
+        
+        local function refreshPanel()
+            panel:refresh()
+        end
+        self:after(time+.1, refreshPanel)
+        
+        self:tween(.7, panel, {cover_alpha=.75}, "in-quad")
+        
+        local function rem()
+            gooi.removeComponent(panel)
+            self.quit = nil
+            self.egP = nil
+            game.online = false
+            game.scoreCoverAlpha = 0
+        end
+        
+        local function no()
+            self:tween_out_ui(panel, time)
+            self:tween(.7, panel, {cover_alpha=0}, "out-quad", rem)
+            playGooiSound()
+        end
+        
+        noButton:onRelease(no)
+
+        
+        local function yes()
+            self:tween(.4, self, {cover_alpha=1.1}, "out-quad", love.event.quit)
+        end
+        
+        yesButton:onRelease(yes)
+        
+        
+        self.quit = panel
+        
+    elseif nil and k == "escape" then
+        local function func()
+            gooi.components = {} ldgm = true
+            LoadMenu.__draw = LoadMenu.ddr or error()
+            game:set_room(LoadMenu)
+        end
+        self:tween(.4, self, {coverAlpha=1.1}, "out-quad", func)
     end
 end
 
@@ -2938,8 +3043,7 @@ function Menu:setup(k)
         
         jigg()
         playGooiSound("facebook_sound")
-        
-        
+        love.system.openURL(WHATSAPP_CHAT_URL)
     end)
     
     
@@ -2956,6 +3060,7 @@ function Menu:setup(k)
             
     function jigg()
         self.whatsappJiggle:shake(40, .5, 30)
+        self:play_sound("trill")
     end
             
 
@@ -2992,7 +3097,7 @@ function Menu:setup(k)
     local function playSound()
         self:play_sound(getValue({"explosive_impact"}), math.random(900,1100)/1000)--"hit", "slap", "whack"}))
     end
-    
+
     self:tween(tt, nn, {x=0,y=oy,angle=360*0}, "in-bounce")
     self:tween(tt, nn, {w=W(), h=H()}, "in-bounce")
     self:after(.465, playSound)
@@ -3006,7 +3111,7 @@ function Menu:setup(k)
         self.title2 = nn
         nn:center()
         nn.w, nn.h = 10,10
-         nn.x, nn.y = W(), -1
+        nn.x, nn.y = W(), -1
         nn.angle = 180
         self:tween(tn, nn, {x=0,y=oy,angle=0}, "in-quad", function()
             self.camera:shake(15,.2,15)
@@ -3022,6 +3127,7 @@ function Menu:setup(k)
             w = W(), h = H(), x = 0, y = 0,
             source = "title/101.png"
         })
+        -- nn.debug = true
         self.title3 = nn
         nn:center()
         nn.w, nn.h = W()*1.5,H()*1.5
@@ -3167,16 +3273,86 @@ function Menu:draw(dt)
     self.whatsapp.angle = self.whatsappJiggle.shake_x
     
     gooi.drawComponent(self.whatsapp)
-    
     local _w, _h = resizeImage(img, W(), H())
    -- lg.draw(img, 0, 0, 0, _w, _h)
+   
+    if self.quit then
+        gooi.drawComponent(self.quit, true)
+    end
     
     set_color(0,0,0,self.alpha)
     draw_rect("fill",-W(),-H(),W()*4,H()*4)
     set_color(r,g,b,a)
 end
 
+function Menu:keyreleased(k)
+    if k == "escape" and not self.quit then-- return self:showRewards(3) else
+        local w, h = W()*.7, H()*.45
+        local panel = gooi.newPanel({
+            padding = 20,
+            x=W()/2-w/2, y=H()/2-h/2,
+            w=w, h=h,
+            layout = "grid 4x3"
+        }):setColspan(1,1,3):setRowspan(1,1,3):setOpaque(true)
+        panel:addImage("resultSlipUI.png")
+        panel.onlyImage = true
+        panel.preDraw = greyDraw
+        
+        panel.ogy = panel.y
+        panel.y = -panel.h*2
+        panel.cover_alpha = 0
+        
+        local label = gooi.newLabel({text=getValue(quitTexts)})
+        panel:add(label)
+        
+        local noButton = gooi.newButton({text=""})
+        noButton:addImage("no.png")
+        noButton.onlyImage = true
+        panel:add(noButton)
+        
+        local yesButton = gooi.newButton({text=""})
+        yesButton:addImage("yes.png")
+        yesButton.onlyImage = true
+        panel:add(yesButton,4,3)
+        
+        local time = .7
+        panel.outy = panel.y
+        self:tween_in_ui(panel, time)
+        
+        local function refreshPanel()
+            panel:refresh()
+        end
+        self:after(time+.1, refreshPanel)
+        
+        self:tween(.7, panel, {cover_alpha=.75}, "in-quad")
+        
+        local function rem()
+            gooi.removeComponent(panel)
+            self.quit = nil
+            self.egP = nil
+            game.online = false
+            game.scoreCoverAlpha = 0
+        end
+        
+        local function no()
+            self:tween_out_ui(panel, time)
+            self:tween(.7, panel, {cover_alpha=0}, "out-quad", rem)
+            playGooiSound()
+        end
+        
+        noButton:onRelease(no)
 
+        
+        local function yes()
+            self:tween(.4, self, {cover_alpha=1.4}, "out-quad", love.event.quit)
+        end
+        
+        yesButton:onRelease(yes)
+        
+        
+        self.quit = panel
+    end
+end
 
 function Menu:draw_before_gooi(dt)
     local HH = H()*2
@@ -3195,6 +3371,7 @@ function Menu:draw_before_gooi(dt)
     lg.line(50, -H()*.5, 50, H()*4)
     
     set_color(r,g,b,a)
+    
 end
 
 LoadMenu = toybox.Room("LoadMenu")
@@ -3368,6 +3545,7 @@ function LoadMenu:draw(dt)
     gooi.draw()
 end
 
+LoadMenu.ddr = LoadMenu.draw
 LoadMenu.draw_before_gooi = Menu.draw_before_gooi
 
 do
