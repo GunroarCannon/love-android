@@ -1,7 +1,0 @@
-.*.swp
-*.o
-*.dll
-*.exe
-*.so
-.vscode/
-build*/
