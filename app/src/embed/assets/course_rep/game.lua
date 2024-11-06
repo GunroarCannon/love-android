@@ -39,7 +39,7 @@ colors.lighterlime = {93/255*1.1, 226/255*1.0, 167/255}
 local e_url = ""
 
 
-WHATSAPP_CHAT_URL = "https://chat.whatsapp.com/EZ2L0VVTkncDK0esgmwBzy"
+WHATSAPP_CHAT_URL = "https://chat.whatsapp.com/LKSy7tdmT8K5eBJWRGRZPj"
 
 GAME_ID = "dev_23af70886adb4dd6b6005f3dd2c1bfb9"
 
@@ -1723,8 +1723,10 @@ function GameScreen:loadNewDialog(data, char)
     
     self.choose.odraw = self.choose.odraw or self.choose.draw
     self.choose.odrawSpecifics = self.choose.odrawSpecifics or self.choose.drawSpecifics
-    self.choose.draw = null
-    self.choose.drawSpecifics = null
+    if not self.isMenu then
+        self.choose.draw = null
+        self.choose.drawSpecifics = null
+    end
     
     self.choose:onPress(function(r)
         self.touched = true
@@ -2146,7 +2148,7 @@ function GameScreen:draw()
         gooi.drawComponent(self.label2)
     end
         
-    if self.choose then
+    if self.choose and not self.isMenu then
         self.choose.draw = self.choose.odraw
         self.choose.drawSpecifics = self.choose.odrawSpecifics
         gooi.drawComponent(self.choose)
@@ -3003,6 +3005,7 @@ function Menu:setup(k)
         self:tween(.7, self.playImage, {alpha=0}, "out-quad")
         self:tween(.7, self.whatsappImage, {alpha=0}, "out-quad")
         self:tween(.6, n, {y=H()+n.h+10}, "out-quad")
+        self:tween(.6, self.whatsapp, {y=H()+n.h+10}, "out-quad")
         for x = 1, 3 do
             local nn = self[string.format("title%s", x)]
             self:tween(.87, nn, x == 3 and {y=H()+nn.h} or {y=-nn.h-10}, "out-quad")
@@ -3033,7 +3036,7 @@ function Menu:setup(k)
     local w = 105
     self.whatsapp = gooi.newButton({
         x = W()-w-10,--/2-w/2,
-        y = 10, H()-w-100,
+        y = H()-w-10,10, H()-w-100,
         w = w, h = w+1,
         text=""
     }):onRelease(function(n)
@@ -3049,7 +3052,7 @@ function Menu:setup(k)
     
     self.whatsappJiggle = gooi.newLabel({
         x = W()-w-10,--/2-w/2,
-        y = 10, H()-w-100,
+        y = self.whatsapp.y, H()-w-100,
         w = w, h = w+1,
         text=""
     })
@@ -3059,7 +3062,7 @@ function Menu:setup(k)
     
             
     function jigg()
-        self.whatsappJiggle:shake(40, .5, 30)
+        self.whatsappJiggle:shake(60, .65, 40)
         self:play_sound("trill")
     end
             
@@ -3477,6 +3480,11 @@ function LoadMenu:mousereleased()
 end
 
 function LoadMenu:update(dt)
+    if not game.renderStartedUp then
+        love.graphics.present()
+        game.renderStartedUp = true
+    end
+    
     if self.startBar then
         if not self.egP then
             self.startBar()
