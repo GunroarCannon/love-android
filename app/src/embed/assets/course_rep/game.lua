@@ -1253,7 +1253,7 @@ function addGPScore(m2, score, templateText, gameover)
         
         local function submitScore()
             game.onlineText = "submitting score online..."
-            m2:tween(.5, game, {scoreCoverAlpha=1}, "in-quad",submitScoreEnd)
+            game.timer:tween(.5, game, {scoreCoverAlpha=1}, "in-quad",submitScoreEnd)
             game.online = true
             
         end
