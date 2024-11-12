@@ -157,6 +157,7 @@ android {
     }
     packagingOptions {
         jniLibs {
+            useLegacyPackaging = true
             excludes += [
                 'lib/armeabi-v7a/libOpenSLES.so',
                 'lib/arm64-v8a/libOpenSLES.so',
@@ -164,7 +165,7 @@ android {
                 'lib/x86_64/libOpenSLES.so'
             ]
         }
-        useLegacyPackaging = true
+        
     }
 }
 
