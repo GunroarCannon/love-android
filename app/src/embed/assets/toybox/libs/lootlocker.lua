@@ -338,7 +338,7 @@ _https.TIMEOUT = 1 -- doesn't work
 local gameId = "your_game_id"
 local leaderboardId = "your_leaderboard_id"
 
-local https = {
+local https = _https or {
     request = function(url, body)
         local threadCode = string.format([[
             require "love.filesystem"
@@ -353,6 +353,8 @@ local https = {
             love.thread.getChannel("response"):push(response)
             
         ]])
+        
+        love.timer.sleep(.5)
         
         thr = love.thread.newThread(threadCode)
         thr:start(url, body)
@@ -395,10 +397,12 @@ local https = {
         end]]
             
         local code = love.thread.getChannel("code"):pop()
+        
         if code then
             return code, love.thread.getChannel("response"):pop()
         else
             log("bad, timed out")
+            love.thread.cancel(thr)
             return 2, "timed out"
         end
         
@@ -431,7 +435,7 @@ function getLocker(gameID, boardID)
                 game_version = "0.1.0.0",
                 player_identifier = playerIdentifier,
             }),
-            timeout = self.timeout*2
+            timeout = self.timeout--*2
         })
         
         log("AUTHENTICATION\n")
@@ -469,7 +473,7 @@ function getLocker(gameID, boardID)
 
     -- Submit score to LootLocker
     function locker.submitScore(self, name, score, playerID, extraMetadata)
-        log("SUBMITTING SCORE")
+        log("SUBMITTING SCORE "..score)
         local sessionToken = self:authenticate()
         
         if not sessionToken then
@@ -527,13 +531,20 @@ function getLocker(gameID, boardID)
         self.code = code
         if code >= 200 and code < 300 then
             -- success
-            log("SuCCUESS "..code..","..inspect(response))
+            log("SuCCUESS items? "..code..","..inspect(response))
         else
             log("Error "..code..","..inspect(response))
             return false
         end
         
-        local scores = json.decode(response).items
+        local scores = json.decode(response)
+        if not scores.items and scores and scores.rank then
+            return {scores}
+        elseif scores and scores[1] and not scores.items then
+            return scores
+        end
+        
+        scores = scores.items or {}
         return scores
     end
     
