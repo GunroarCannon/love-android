@@ -49,7 +49,7 @@ ENERGYBOARD_ID = 24510
 WEEKLY_SCOREBOARD_ID = 0
 
 -- REAL IDS
-SCOREBOARD_ID = 24719
+SCOREBOARD_ID = 25251--24719
 ENERGYBOARD_ID = 24720
 WEEKLY_SCOREBOARD_ID = 24718
 
@@ -279,10 +279,12 @@ AskForPlayerDetails = function(self)
         local function selectFemaleGender(n)
             gdata.gender = "female"
             n:shake(15, .3, 15)
+            self:play_sound("boing")
         end
         local function selectMaleGender(n)
             gdata.gender = "male"
             n:shake(15, .3, 15)
+            self:play_sound("chest_break")
         end
         
         local f = mario_font13
@@ -312,6 +314,7 @@ AskForPlayerDetails = function(self)
         
         local function rem()
             gooi.removeComponent(panel)
+            self:play_sound("bell")
             game:printErrorMessage(string.format("Welcome, @%s", gdata.name), colors.darklime)
         end
         
@@ -320,6 +323,7 @@ AskForPlayerDetails = function(self)
             
             if not noButton.sure then
                 noButton:setText("YOU SURE?")
+                self:play_sound("spring")
                 noButton.sure = true
                 noButton:shake(15, .4, 15)
                 self.camera:shake(15,.3,15)
@@ -331,9 +335,14 @@ AskForPlayerDetails = function(self)
             
             gdata.name = textInput:getText()
             
-            self:play_sound("hit_1")
+            for x = 1, 2 do
+            self:play_sound("applause")
+            self:play_sound("cheering")
+            end
             self:tween_out_ui(panel, time)
             self:tween(.7, panel, {cover_alpha=0}, "out-quad", rem)
+            
+            loadSong(getValue(titleSongs), nil, 2)
             --addGPScore(self, 35, "Extra Credit: &colors.gold %sgp")
         end
         
@@ -345,6 +354,9 @@ end
 
 NotifyPlayerDonorReward = function(self, helped)
     if true then
+        loadSong("champions_league")
+        self:play_sound(getValue({"applause", "xbox_levelup"}))
+        
         local w, h = W()*.7, H()*.45
         local panel = gooi.newPanel({
             padding = 20,
@@ -411,6 +423,7 @@ NotifyPlayerDonorReward = function(self, helped)
             self.camera:shake(15, .4, 15)
             panel:shake(10,.3,10)
             label:shake(10,.3,10)
+            self:play_sound("explosion")
             
             for x = 1,3 do
                 label.texty:update(1/30)
@@ -591,8 +604,74 @@ function GameScreen:showRewards(energyReward, funct)
     end
 end
 
+local function warnSlowdown(self)
+    do
+        self:play_sound("spongebob_fail")
+        
+        local w, h = W()*.7, H()*.45
+        local panel = gooi.newPanel({
+            padding = 5,
+            x=W()/2-w/2, y=H()/2-h/2,
+            w=w, h=h,
+            layout = "grid 4x3"
+        }):setColspan(1,1,3):setRowspan(1,1,3):setOpaque(true)
+        panel:addImage("resultSlipUI.png")
+        panel.onlyImage = true
+        panel.preDraw = greyDraw
+        
+        panel.ogy = panel.y
+        panel.y = -panel.h*2
+        panel.cover_alpha = 0
+        
+        local label = gooi.newLabel({text=
+[[ 
+@ Slow down! ~
+ 
+And take the time to view the consequences #to your choices...
+]]})
+        panel:add(label)
+        label.yOffset = 15
+        
+        local noButton = gooi.newButton({text=""})
+        noButton:addImage("yes.png")
+        noButton.onlyImage = true
+        panel:add(noButton, 4, 2)
+        
+        local time = .7
+        panel.outy = panel.y
+        self:tween_in_ui(panel, time)
+        
+        local function refreshPanel()
+            panel:refresh()
+        end
+        self:after(time+.1, refreshPanel)
+        
+        self:tween(.7, panel, {cover_alpha=.75}, "in-quad")
+        
+        local function rem()
+            gooi.removeComponent(panel)
+            self.quit = nil
+            self.egP = nil
+            game.online = false
+            game.scoreCoverAlpha = 0
+        end
+        
+        local function no()
+            self:tween_out_ui(panel, time)
+            self:tween(.7, panel, {cover_alpha=0}, "out-quad", rem)
+            playGooiSound()
+            
+            self:play_sound("bell")
+        end
+        
+        noButton:onRelease(no)
+        
+        self.quit = panel
+    end
+end
+
 function GameScreen:keyreleased(k)
-    if k and not self.quit then-- return self:showRewards(3) else
+    if k and not self.quit then --return warnSlowdown(self) and self:showRewards(3) else
         local w, h = W()*.7, H()*.45
         local panel = gooi.newPanel({
             padding = 20,
@@ -669,6 +748,8 @@ nw = .5
 function GameScreen:setup()
     self:activate_gooi()
     
+    gdata.gamePlayed = true
+        
     loadSong(getValue(gameSongs))
     
     local w = W()*.99
@@ -852,22 +933,75 @@ function GameScreen:setup()
         game:getAsset(string.format("people/%s/head.png", name))
     end
     
+    local nnxt = {
+                    isNarrator = true,
+                    text = "Don't let any of the bars above \n(faith, #grade, ~ @popularity ~ and # money ~ ) \n get too low...",--n:draw
+                    setStats = {
+                        popularity = 5,
+                        coin = 5,
+                        brain = 5,
+                        church = 5
+                    },
+                    next = {
+                        isNarrator = true,
+                        text = "....or @too high...",
+                        setStats = {
+                            popularity = 90,
+                            coin = 90,
+                            brain = 90,
+                            church = 90
+                        },
+                        next = {
+                            --isNarrator = true,
+                            --text = "so you ckeep your job as course rep.",
+                
+                            -- next = {
+                                isNarrator = true,
+                                text = "If they do, you get relieved of your duties and @lose.",
+                                setStats = {
+                                    popularity = {30,50},
+                                    coin = {20,50},
+                                    brain = {20,50},
+                                    church = {30,45}
+                                },
+                                
+                                next = {
+                                    isNarrator = true,
+                                    text = "Make sure to read the decisions...\nAnd Beware...",
+                                    yes = {text="?"},
+                                    no = {text="?"},
+                                    next = {
+                                        isNarrator = true,
+                                        text = "...They'll drive you crazy...",
+                                        no = {text="what!?"},
+                                        yes = {text="who??"}
+                                    }
+                            -- }
+                            }
+                        }
+                    }
+                }
+                
     self:after(time2, function()
         self:loadNewDialog(not gdata.seenCardRules and {
             isNarrator = true,
-            text = "Don't let any of the bars above \n(faith, #grade, ~ @popularity ~ and # money ~ ) \n get too low...",--n:draw
+            text = "Hold and slowly Swipe this card left or right to make decisions...",
+            yes = {text="okay..."},
+            no = {text="seems easy"},
             next = {
                 isNarrator = true,
-                text = "....or @too high...",
-                next = {
-                    --isNarrator = true,
-                    --text = "so you ckeep your job as course rep.",
-                
-                    -- next = {
-                        isNarrator = true,
-                        text = "If they do, you get releaved of your duties and @lose."
-                    -- }
-                }
+                text = "You are the\n Course Rep. \nYour decisions have consequences.",
+                yes = {text="That's nice", next={
+                    text = "Or so it seems...",
+                    isNarrator = true,
+                    next = nnxt
+                }},
+                no = {text="Nooo. I don,t want", next={
+                    text = "well! too bad.",
+                    isNarrator = true,
+                    next = nnxt
+                }},
+                --next = 
             }
         })--startD)--, startC)
         
@@ -1040,13 +1174,13 @@ function GameScreen:getCharacterForDialog(data)
     return char
 end
 
-function GameScreen:changeStats(stats)
+function GameScreen:changeStats(stats, set)
     local saved
     
     for x, v in pairs(stats) do
         if not self.stats[x] then error(x) end
         
-        local val = lume.clamp(self.stats[x]+v,0,MAX_SCORE+1)
+        local val = set and (MAX_SCORE+1)*(v/100) or lume.clamp(self.stats[x]+v,0,MAX_SCORE+1)
         
         if val <= 0 then
             val = -4
@@ -1133,11 +1267,13 @@ function GameScreen:gameover(stat, high)
         self:tween(.8, b.color, colors.red, "in-quad")
     end
     
-    self.nextLoad = {getValue(losses[stat][high and "high" or "low"]), "You were releaved of your duties..."}
+    self.nextLoad = {getValue(losses[stat][high and "high" or "low"]), "You were relieved of your duties..."}
 end
 
 
 function addGPScore(m2, score, templateText, gameover)
+    game.scoreSubmitted = false
+    
     if gameover then
     local self = m2
     local w = W()*.3*1.5
@@ -1230,12 +1366,13 @@ function addGPScore(m2, score, templateText, gameover)
         
         local function submitScoreEnd()
             
-            if scoreboard:submitScore(gdata.name, gdata.totalGP) and weeklyScoreboard:submitScore(m2.currentScore or gdata.highscore) then
+            if scoreboard:submitScore(gdata.name, gdata.totalGP) and weeklyScoreboard:submitScore(gdata.name, score or m2.currentScore or gdata.highscore) then
                 game.scoreSubmitted = true
             else
                 game:printErrorMessage("No Network, Submission failed?", {.7,.7,.7,.7})
                 m2:play_sound("negative")
                 game.scoreSubmitted = false
+                gdata.weekly = score
             end
             
             local function func()
@@ -1264,7 +1401,7 @@ function addGPScore(m2, score, templateText, gameover)
             
             local function updateText()
                 local timeText = string.format(templateText, m2.currentScore, math.random(100))
-                m2.scoreLabel:setText(timeText)
+                sl:setText(timeText)
             end
             
             local tag, tag2 = m2:every(.1, updateText)
@@ -1294,7 +1431,7 @@ function addGPScore(m2, score, templateText, gameover)
                     
                     local function outTag()
                         m2.timer:cancel(tag)
-                        gooi.removeComponent(m2.scoreLabel)
+                        gooi.removeComponent(sl)
                         m2.scoreLabel = nil
                     end
                     
@@ -1579,7 +1716,25 @@ function GameScreen:loadNewDialog(data, char)
     end
     
     if not data then
+        gdata.choices = gdata.choices + 1
+        
         self:addScore()
+    end
+    
+    if not gdata.warnedSlow then
+        local time = os.time()
+        if (time - (self.timeSinceLastChoice or 0)) < 3 then
+            self.slowWarn = (self.slowWarn or 0)+1
+            if self.slowWarn > 3 then
+                local function warnSlow()
+                    warnSlowdown(self)
+                    gdata.warnedSlow = true
+                end
+                self:after(.2, warnSlow)
+            end
+        end
+        
+        self.timeSinceLastChoice = time
     end
     
     local dataGiven = data and true
@@ -1623,6 +1778,15 @@ function GameScreen:loadNewDialog(data, char)
             data.tmpStats[x] = getValue(i)
         end
     end
+    
+    
+    data.tmpSetStats = {}
+    if data.setStats then
+        for x, i in pairs(data.setStats) do
+            data.tmpSetStats[x] = getValue(i)
+        end
+    end
+    
     
     if data.no and data.no.stats then
         data.no.tmpStats = {}
@@ -1836,11 +2000,11 @@ function GameScreen:loadNewDialog(data, char)
     self.label2 = gooi.newLabel({text="" or "NO Way #Hosee , ~ even i then still no",
         x = xx,
         y = yy+self.choose.h+20,-10+yy+self.choose.h/2-self.label.h/2,6+20,
-        w = self.choose.w,
+        w = (self.choose.w+100)/(self.isMenu and 1 or 1.5),
         h = self.label.h,
         instant = true,-- font=font30--mario_font18
     })
-    self.label2.fgColor = {0,0,0,0}
+    self.label2.fgColor = {1,1,1,0}--{0,0,0,0}
     
     
     self.nameLabel = gooi.newLabel({text=charData and charData.name or char or "" or "Banana Manana",
@@ -1947,10 +2111,97 @@ self:after(.1, function()
     end
     
     self.choose.preDraw()--i.draw()
+    
+    -- don't tilt text in gameplay so people will pay more attention to them
+    local transformStuff = not self.isMenu
+    
+    function imageStencilFunction()
+    
+      local selff = self.choose
+      
+      if transformStuff then
+        local gtran = gooi_transform
+        gtran:reset()
+        lg.push()
+        local rx = selff.w/6
+        local ry = selff.h/6
+        
+        local tr = selff.transformParent or selff
+        local rrx,rry = (tr.x+tr.w/2), (tr.y+tr.h/2)
+        Graphics.translate(rrx,rry)
+        Graphics.rotate(math.rad(tr.angle or 0))
+        love.graphics.applyTransform(gtran)
+        Graphics.translate(-rrx, -rry)
+      end
+      
+      local img = border
+      local oldShader = img.shader
+      img.shader = mask_shader
+      selff:drawImage(img)
+      img.shader = oldShader
+      
+      if transformStuff then
+          lg.pop()
+      end
+    end
+        
+    local oldd = self.choose.draw
+    local ddraw = self.label2.draw
+    local ddraws = self.label2.drawSpecifics
+    
+    self.label2.noStencil = true -- to not override stencil applied
+    
+        self.label2.texty.w = self.label2.w/2
+        
+    self.choose[transformStuff and "postPostDraw" or "postDraw"] = function(selff, ...)
+        -- oldd(selff, ...)
+        local ox, oy = self.label2.x, self.label2.y
+        -- self.label2.angle = selff.angle
+        
+        love.graphics.stencil(imageStencilFunction,  "replace", 1)
+        love.graphics.setStencilTest("greater", 0)
+        
+    
+        local fh = self.label2.texty.h
+        local ffh = (fh+5)*(1-self.labelTweenValue)
+        
+        -- self.label2:setText("A very comlpicated message is arriving to you noq you know")
+        self.label2.x = selff.x-50+((selff.w+100)-self.label2.w)/2
+        self.label2.y = selff.y-50-ffh
+        self.label2.yOffset = 30
+        --self.label2.w = selff.w+100
+        -- self.label2.transformParent = selff
+        --self.label2.texty.w = selff.w
+        
+        
+        
+        local r,g,b,a = set_color(0,0,0,(self.label2.fgColor[4])/1.45)
+        local fx, fy = self.label2.x, self.label2.texty.y
+ 
+        local ww = 500
+        draw_rect("fill", fx-ww, selff.y-55-ww-ffh, selff.w+100+ww*2, fh+70+ww)
+        set_color(r,g,b,a)
+        
+        
+        self.label2.draw = ddraw
+        self.label2.drawSpecifics = ddraws
+        
+        self.label2:draw()--gooi.drawComponent(self.label2)
+        self.label2:drawSpecifics(self.label2.fgColor or self.label2.style.fgColor)
+        
+        self.label2.draw = null
+        self.label2.drawSpecifics = null
+        
+        self.label2.kx = ox
+        self.label2.ky = oy
+        
+        lg.setStencilTest()
+    end
+    
     --border.draw=i.draw
 
     --xScale = math.cos(3.14/2 * time)
-
+    self.labelTweenValue = 0
     
     self.choose.onlyImage = true
     self.choose.showBorder = false
@@ -1961,6 +2212,13 @@ self:after(.1, function()
 end) end
 
 function GameScreen:mousereleased()
+    if self.labelTween then
+        self.timer:cancel(self.labelTween)
+        self.labelTween = nil
+    end
+    
+    self.labelTweenValue = 0
+    
     if (self.egP and self.isMenu) or self.quit or game.online then return end
     
     if self.labelUI and not self.labelUI.texty.done then
@@ -1986,7 +2244,7 @@ function GameScreen:mousereleased()
             
             if self.isMenu then
             
-                if self.chosen == self.data.yes then
+                if self.chosen == self.data.yes or not gdata.gamePlayed then
                     self:startGame()
                 else
                     self:viewHighscores()
@@ -2003,6 +2261,11 @@ function GameScreen:mousereleased()
             if self.data.stats then
                 assert(self.data.tmpStats)
                 self:changeStats(self.data.tmpStats)
+            end
+            
+            if self.data.setStats then
+                assert(self.data.tmpSetStats)
+                self:changeStats(self.data.tmpSetStats, true)
             end
             
             if self.chosen then
@@ -2030,6 +2293,8 @@ function GameScreen:mousereleased()
                 self:play_sound("negative")
                 self.energyButton.events.r(self.energyButton)
             end
+            
+            self.chosen = nil
         end
     end
 end
@@ -2078,6 +2343,13 @@ function GameScreen:mousemoved(x, y)
         
         if changed then
             self:play_sound("card_swipe")
+        
+            if self.labelTween then
+                self.timer:cancel(self.labelTween)
+                self.labelTween = nil
+            end
+            self.labelTweenValue = 0
+            self.labelTween = self:tween(.3, self, {labelTweenValue = 1}, "linear")
         end
         
         for x = 1, changed and 5 or 0 do
@@ -2094,6 +2366,37 @@ function GameScreen:update(dt)
     gdata.playTime = gdata.playTime + dt
 end
 
+local function checkCardChoice(self)
+        local changed
+        
+        if self.choose.angle <= 0 then
+            if self.chosen ~= self.data.no then
+                self.label2:setText(self.noText)
+                self.chosen = self.data.no
+                self.statsAffected = self.chosen and self.chosen.tmpStats or self.data.tmpStats or {}
+                changed = true
+            end
+        else
+            if self.chosen ~=self.data.yes then
+                self.label2:setText(self.yesText)
+                self.chosen = self.data.yes
+                self.statsAffected = self.chosen and self.chosen.tmpStats or self.data.tmpStats or {}
+                changed = true
+            end
+        end
+        
+        if changed then
+            self:play_sound("card_swipe")
+        
+            if self.labelTween then
+                self.timer:cancel(self.labelTween)
+                self.labelTween = nil
+            end
+            self.labelTweenValue = 0
+            self.labelTween = self:tween(.3, self, {labelTweenValue = 1}, "linear")
+        end
+end
+
 function GameScreen:draw_before_gooi(dt)
     if self.isNarrator then
         self.label.x = self.choose.x
@@ -2103,9 +2406,32 @@ function GameScreen:draw_before_gooi(dt)
     end
     
     if self.label2 then
-        self.label2.fgColor[4] = self.label2.text == "" and 0 or ((math.abs(self.diffx or 0)-30)/250)+0
-        if self.scoreLabel then
-            self.scoreLabel.fgColor[4] = lume.max(self.isMenu and .25 or 0, 1-self.label2.fgColor[4]*1.7*(self.diffx and self.diffx>0 and 2 or 1))
+    
+        if self.cardTween then
+            checkCardChoice(self)
+        end
+        local div = 100 --250
+        local diffx = self.diffx
+        if self.cardTween then--- =
+            local ang = (self.chooseDiff/200)*30
+            diffx = self.choose.x-self.choose.ogx
+            self.label2.images.color = getValue(colors)
+            
+            if (self.choose.angle > ang or self.choose.x > self.chooseX) and self.chooseDiff > 0 then
+                self.choose.angle = ang
+                self.choose.x = self.chooseX
+            end
+            
+            if (self.choose.angle < ang or self.choose.x < self.chooseX) and self.chooseDiff < 0 then
+                self.choose.angle = ang
+                self.choose.x = self.chooseX
+            end
+            
+        end
+        
+        self.label2.fgColor[4] = self.label2.text == "" and 0 or ((math.abs(diffx or 0)-30)/div)+0+.2
+        if self.scoreLabel and nil then
+            self.scoreLabel.fgColor[4] = lume.max(self.isMenu and .25 or 0, 1-self.label2.fgColor[4]*1.7*(diffx and diffx>0 and 2 or 1))
             self.scoreLabel:setText(self.scoreLabel.text)
         end
     end
@@ -2140,7 +2466,7 @@ end
 local nully = function() end
 
 function GameScreen:draw()
-    if self.label2 then
+    if self.label2 and nil then
         set_color(0,0,0,(self.label2.fgColor[4])/1.4)
         local fx, fy = self.label2.x, self.label2.texty.y
         local fh = self.label2.texty.h
@@ -2435,7 +2761,7 @@ function Menu2:setup()
                 
                 self.egP = true
                 self.rtimer = self:every(.7, self.rfunc)
-            else
+            elseif me then
                 log("Nope "..inspect(me.metadata)..","..inspect(me.metadata.extraMetadata))
               -- game:printErrorMessage("@No helpers fund")
             end
@@ -2455,6 +2781,8 @@ function Menu2:setup()
         self:tween(.13, game, {scoreCoverAlpha=1}, "in-quad")
         game.online = true
         self:after(.15, checkForDonationReward)
+        self.checkedDemonstration = true
+        self:after(.05, self.demonstrateFunction or null)
     end
     
     assert(null)
@@ -2473,11 +2801,13 @@ function Menu2:setup()
         
         if scores ~= null then
             local score = scores
-            local energy = math.random(1, gdata.energy) 
+            local energy = lume.min(math.random(1, gdata.energy), 3)
             log("Donating energy "..energy..","..gdata.name)
             if energyboard:submitScore(gdata.name, energy) then
+                
                 gdata.energy = gdata.energy - energy
-                game:printErrorMessage("&colors.darkdarklime #Energy donated!!\n ~ This might help someone in need!")
+                local function n()
+                game:printErrorMessage(string.format("&colors.darkdarklime %s #Energy donated!!\n ~ This might help someone in need!", energy))
                 
                 local function func()
                     addGPScore(self, not gdata.donatedBefore and math.random(1000, 1200) or math.random(50,600), "Reward: %sgp")
@@ -2488,6 +2818,9 @@ function Menu2:setup()
                 self.toReward = func
                 self.egP.cancel(self.egP)
                 self:after(1.3, func)
+                end
+                
+                self:after(.4, n)
                 
                 gdata.donatedTime = os.time()
                 self.askedForEnergy = true
@@ -2515,7 +2848,7 @@ function Menu2:setup()
             local scores = lume.copy(scores)
             while #scores > 0 do
                 local dat = lume.eliminate(scores)
-                if dat.member_id ~= self.name and dat.score > 0 then
+                if dat.member_id ~= gdata.name and dat.score > 0 then
                     helper = dat
                     break
                 end
@@ -2527,7 +2860,7 @@ function Menu2:setup()
             
             if helper then
                 log("FOUND HELPER "..helper.member_id)
-                local energy = math.random(1, helper.score)
+                local energy = lume.min(3, math.random(1, helper.score))
                 if energyboard:submitScore(helper.member_id, helper.score-energy, helper.metadata.playerID, {helped = gdata.name}) then
                     gdata.energy = gdata.energy + energy
                     local function ff()
@@ -2872,21 +3205,51 @@ function Menu2:setup()
             text=gdata.gamePlayed and "Swipe to Decide...\n \n " or " \n You are Course Rep.",
             isNarirator=true,
             yes={text="@Begin Semester"},
-            no={text="&colors.black #View highscores"},
+            no=gdata.gamePlayed and {text="&colors.gold #View highscores"} or {text="@Begin Semester"},
             isLoss=idk, source=idk and "idk.png"
         }, not gdata.gamePlayed and "Swipe to make decisions..." or idk and "") --label2
         
         --self.label2.texty.ftont = mario_font18
-        gdata.gamePlayed = true
         
         local function demonstrate()
-            local diffx = 100
-            local chooseX = self.choose.ogx+diffx
-            local chooseAngle = (diffx/200)*30
+            local nextSide, nextSide2
             
-            self.cardTween = self.timer:tween(2.45, self.choose, {x = chooseX, angle = chooseAngle}, "in-quad")
+            nextSide = function()
+                local diffx = 100
+                self.chooseDiff = diffx
+                local chooseX = self.choose.ogx+diffx
+                local chooseAngle = (diffx/200)*30
+                
+                self.chooseX = chooseX
+            
+                self.cardTween = self.timer:tween(1.65, self.choose, {x = chooseX, angle = chooseAngle}, "in-quad", nextSide2)
+            end
+            
+            nextSide2 = function()
+                local diffx = -100
+                self.chooseDiff = diffx
+                local chooseX = self.choose.ogx+diffx
+                local chooseAngle = (diffx/200)*30
+                
+                self.chooseX = chooseX
+            
+                self.cardTween = self.timer:tween(1.65, self.choose, {x = chooseX, angle = chooseAngle}, "in-quad", nextSide)
+            end
+            
+            nextSide()
         end
-        self:after(idk and 4.5 or 6, gdata.energy > 0 and not self.touched and demonstrate or null)
+        
+        self.demonstrateFunction = function()
+            
+        end
+        
+        do
+            self:after(not gdata.gamePlayed and .7 or idk and 5.2 or math.random(7,15), not idk and false_null or gdata.energy > 0 and not self.touched and demonstrate or null)
+        end
+        
+        if self.checkedDemonstration or (game.checkedForReward or not gdata.loggedIn) then -- didn't actually demonstrate yet
+            self.demonstrateFunction()
+        end
     end
     self:after(1.0, start)
     
@@ -3012,10 +3375,14 @@ function Menu:setup(k)
         end
     end):onPress(function()
         self.playImage.source = "title/play_down.png"
+        self.playPressed = true
     end):onMoveReleased(function(n)
         self.playImage.source = "title/play_up.png"
+        self.playPressed = false
     end):onMoved(function(n)
-        self.playImage.source = "title/play_down.png"
+        if self.playPressed then
+            self.playImage.source = "title/play_down.png"
+        end
     end)
     
     self.cover_alpha = 1
@@ -3033,10 +3400,10 @@ function Menu:setup(k)
     local jigg
     
     do
-    local w = 105
+    local w = 105--*2.2--drawcomponent(self.label2)
     self.whatsapp = gooi.newButton({
-        x = W()-w-10,--/2-w/2,
-        y = H()-w-10,10, H()-w-100,
+        x = W()/2-255/2+255+10,W()-w-10,--/2-w/2,
+        y = H()-255-100+255/2+30,H()-w-10,10, H()-w-100,
         w = w, h = w+1,
         text=""
     }):onRelease(function(n)
@@ -3426,6 +3793,10 @@ function LoadMenu:setup()
         local lLoadTexts = lume.copy(loadTexts)
     
         self.makeNewText = function()
+            if self.waitText then
+                return
+            end
+            
             if self.label and self.label.texty.done then
                 gooi.removeComponent(self.label)
                 self.label = nil
@@ -3454,6 +3825,7 @@ function LoadMenu:setup()
         
         self:every(2, self.makeNewText)
         self.makeNewText()
+        
     
     
     end
@@ -3723,16 +4095,50 @@ function game:setup()
         loadSong(getValue(titleSongs), nil, 2)--"carnival_of_strangeness",1)
     end
     
-    self.timer:after(2, song)
+    local load3, load4
     
     local function load1()
-    if true then
+        local count = 0
+        for name, char in pairs(not {} or characters) do
+            game:getAsset(string.format("people/%s/body.png", name))
+            game:getAsset(string.format("people/%s/face.png", name))
+            game:getAsset(string.format("people/%s/head.png", name))
+            count = count + 1
+            if count > 10 then break end
+        end
+        
+        toybox.room.waitText = true
+        toybox.room:after(.5, load3)
+    end
+    
+    
+    function load3()
+        local count = 0
+        for name, char in pairs(not {} or characters) do
+            game:getAsset(string.format("people/%s/body.png", name))
+            game:getAsset(string.format("people/%s/face.png", name))
+            game:getAsset(string.format("people/%s/head.png", name))
+            count = count + 1
+            if count > 20 then break end
+        end
+        
+        if toybox.room.speedUp then
+            toybox.room.speedUp()
+        end
+        
+        toybox.room.waitText = true
+        toybox.room:after(.8, load4)
+    end
+    
+    function load4()
         for name, char in pairs(not {} or characters) do
             game:getAsset(string.format("people/%s/body.png", name))
             game:getAsset(string.format("people/%s/face.png", name))
             game:getAsset(string.format("people/%s/head.png", name))
         end
-    end
+        
+        
+        toybox.room.waitText = false
     end
     
     local function load2()
@@ -3780,6 +4186,11 @@ function game:setup()
     self.data = toybox.getData("course_rep")
     gdata = self.data
     
+        
+    if gdata.gamePlayed then
+        self.timer:after(2, song)
+    end
+    
     gdata.energy = gdata.energy or 2
     gdata.energyTimer = 0
     
@@ -3792,6 +4203,8 @@ function game:setup()
     gdata.totalGP = gdata.totalGP or 0
     gdata.totalPlays = gdata.totalPlays or 0
     gdata.playTime = gdata.playTime or 0
+    
+    gdata.choices = gdata.choices or 0
 
     -- media.load(req("sfx_data"))
     -- energy

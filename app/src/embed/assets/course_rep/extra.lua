@@ -2,6 +2,7 @@
 ScoreMenu = toybox.Room("ScoreMenu")
 
 function ScoreMenu:setup()
+    ttime = 2
     gooi.components = {}
     
     local uw, uh = W()*.7, H()*.45
@@ -36,12 +37,15 @@ function ScoreMenu:setup()
     self.af = self:after(5+math.random(30,50)/10, self.speedUp)
     
     if not game.scoreSubmitted and gdata.highscore then
-        if scoreboard:submitScore(gdata.name, gdata.highscore) then
+        
+        if scoreboard:submitScore(gdata.name, gdata.totalGP) and weeklyScoreboard:submitScore(gdata.name, gdata.weekly or gdata.highscore) then
+        -- if scoreboard:submitScore(gdata.name, gdata.highscore) then
             game.scoreSubmitted = true
         end
     end
     
     local function getScoresTotalText()
+        log("total getting")
         self._scoreboard = scoreboard
         
         if self.scoresTotalText then
@@ -49,7 +53,7 @@ function ScoreMenu:setup()
             return self.scoresTotalText
         end
         
-        local scores = scoreboard:getScores(20)
+        local scores = scoreboard:getScores(ttime)
         local text
         if scores then
             text = " \n  "
@@ -63,19 +67,20 @@ function ScoreMenu:setup()
         self.scoresTotal = scores
         self.scores = scores
         self.scoresTotalText = text
-        log(self.scores and "yes scoreessssss")
+        log(self.scores and "yes scoreessssss" or "no scores?")
         return text
     end
     
     local function getScoresWeeklyText()
         self._scoreboard = weeklyScoreboard
+        log("weekly getting")
         
         if self.scoresWeeklyText then
             self.scores = self.scoresWeekly
             return self.scoresWeeklyText
         end
         
-        local scores = weeklyScoreboard:getScores(20)
+        local scores = weeklyScoreboard:getScores(ttime)
         local text
         if scores then
             text = " \n  "
@@ -88,6 +93,7 @@ function ScoreMenu:setup()
         end
         self.scoresWeekly = scores
         self.scores = scores
+        log(self.scores and "weekly yes scoreessssss" or "no scores?")
         self.scoresWeeklyText = text
         return text
     end
@@ -196,10 +202,14 @@ function ScoreMenu:setup()
         end
     
         self.placementScore:setText(
-me and string.format([[YOU RANKED &colors.darkblue NUMBER %s ~ with #%s GP]], me.rank, me.score) or scores and (game.scoreSubmitted and "Your rank is missing or too low..." or "Your score failed to submit (bad network)") or "Connection problem, couldn't find ranking")
+me and string.format([[YOU RANKED &colors.darkblue NUMBER %s ~ with #%s GP]], me.rank, me.score) or scores and (game.scoreSubmitted and "Your rank is missing or too low..." or "Your score failed to submit (bad network)") or notError and "A problem occured, please reload" or "Connection problem, couldn't find ranking")
 
         if self.placeTimer then
             self.timer:cancel(self.placeTimer)
+        end
+        
+        if self.placementScore2 then
+            self.placementScore2:setText("")
         end
         
         local function doit()
@@ -224,22 +234,24 @@ me and string.format([[YOU RANKED &colors.darkblue NUMBER %s ~ with #%s GP]], me
                       font = font19, instant=false
                   }):setOpaque(false):left()
               end
+               
                self.placementScore2:setText(
     
-                me and string.format("&colors.grey %s%s%s%s &{0,0,0} %s%s%s%s&colors.grey %s%s%s",
+                me and string.format("&colors.grey %s%s%s%s%s &{0,0,0} %s%s%s%s&colors.grey %s%s%s",
                 old and string.format("%s) ", old.rank) or "",
                 old and old.member_id or "",
-                old and string.format(" ... %s", old.score) or "",
+                old and string.format(" ... %sGP", old.score) or "",
                 old and "\n" or "",
-                string.format("%s) ", me.rank),
+                string.format("...\n%s) ", me.rank),
                 me.member_id,
-                string.format(" ... %s", me.score),
+                string.format(" ... %sGP", me.score or "?"),
+                "\n...",
                 next and "\n" or "",
                 next and string.format("%s) ", next.rank) or "",
                 next and next.member_id or "",
-                next and string.format(" ... %s", next.score) or ""
+                next and string.format(" ... %sGP", next.score) or "\n..."
             ) or 
-            scores and "Your result is @missing?" or notError and "Results are @missing" or 
+            scores and "Your result is @missing?" or notError and "\n  Results are @missing" or 
             "@Connection Problem")
         end
         
@@ -247,7 +259,7 @@ me and string.format([[YOU RANKED &colors.darkblue NUMBER %s ~ with #%s GP]], me
         self.doit = doit
         
         self.scoreboard:setText(
-            text or notError and "Results are empty?" or [[
+            text or notError and "\n  \n  \n  Results are empty?" or [[
     
         @Connection Problem
         
@@ -275,12 +287,12 @@ me and string.format([[YOU RANKED &colors.darkblue NUMBER %s ~ with #%s GP]], me
         if sc.currentScoreboard == 1 then
             sc.currentScoreboard = 2
             simg.source = "scoreboard_2.png"
-            self.scoreboard:setText("..."):center()
+            self.scoreboard:setText("\n  \n  \n..."):center()
             self:after(.3, setTextTotal)
         else
             sc.currentScoreboard = 1
             simg.source = "scoreboard_1.png"
-            self.scoreboard:setText("..."):center()
+            self.scoreboard:setText("\n  \n  \n..."):center()
             self:after(.3, setTextWeekly)
         end
     end
@@ -334,7 +346,7 @@ me and string.format([[YOU RANKED &colors.darkblue NUMBER %s ~ with #%s GP]], me
     end
     
     self.placementScore = gooi.newLabel({
-        x = W()/2-w/2, y = h+50+nh-50,
+        x = W()/2-w/2, y = h+50+nh-50-50,
         w = w, h = h,
         font = font20, instant=false
     }):setOpaque(false):setText(

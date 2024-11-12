@@ -1776,7 +1776,7 @@ For a price"]],
             },{
                 sameCharacter = true,
                 text = [["Oh for real?? I hate that game..."]],
-                stats = {popularity=true}
+                stats = {popularity=-BASIC}
             } }
         }
     },
