@@ -754,6 +754,11 @@ function gooi.drawComponent(comp, drawChildren, noReset, checkedAlpha)
         comp.x = comp.x - comp.shake_x
         comp.y = comp.y - comp.shake_y
         lg.pop()
+        
+        
+        if comp.postPostDraw then
+            comp:postPostDraw()
+        end
     end
     
     NO_DOUBLE_TEXT = false
