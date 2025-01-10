@@ -1,3 +1,5 @@
+VERSION = 1.2
+
 --[[Error
 
 toybox/entities/Game.lua:38: Cannot create Texture (OpenGL error: invalid framebuffer operation)
@@ -32,6 +34,14 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
 
 -- choose:add
 -- vertex shader
+
+function lendir_x(s, ang)
+    return s*math.cos(ang)
+end
+
+function lendir_y(s, ang)
+    return s*-math.sin(ang)
+end
 
 colors.darklime = {93/255, 226/255, 167/255}
 colors.darkdarklime = {93/255*.7, 226/255*.7, 167/255*.7}
@@ -1366,7 +1376,7 @@ function addGPScore(m2, score, templateText, gameover)
         
         local function submitScoreEnd()
             
-            if scoreboard:submitScore(gdata.name, gdata.totalGP) and weeklyScoreboard:submitScore(gdata.name, score or m2.currentScore or gdata.highscore) then
+            if scoreboard:submitScore(gdata.name, gdata.totalGP, nil, {timePlayed=gdata.playTime, gamesPlayed=gdata.totalPlays}) and weeklyScoreboard:submitScore(gdata.name, score or m2.currentScore or 10) then
                 game.scoreSubmitted = true
             else
                 game:printErrorMessage("No Network, Submission failed?", {.7,.7,.7,.7})
@@ -2595,6 +2605,7 @@ end
 local bnn = 0
 function Menu2:startGame()
     gdata.energy = gdata.energy-1
+    -- data.gamesPlayed = gdata.
     
     local function stop()
         self.energy.tweeningColor = false
@@ -3431,6 +3442,7 @@ function Menu:setup(k)
     function jigg()
         self.whatsappJiggle:shake(60, .65, 40)
         self:play_sound("trill")
+        self.wjigged = true
     end
             
 
@@ -3439,6 +3451,15 @@ function Menu:setup(k)
     self.whatsappJiggle.showBorder = false
     self.whatsappJiggle.bgColor = {0,0,0,0}
     
+    local whw = self.whatsapp.w
+    local whh = self.whatsapp.h
+    
+    local wn = 2
+    self.wx = self.whatsapp.x-self.play.x+self.play.w/2
+    self.wy = self.whatsapp.y-self.play.y+self.play.h/2
+    
+    self.whatsapp.w = whw*wn
+    self.whatsapp.h = whh*wn
     
     self.whatsapp.drawRect = false
     self.whatsapp.showBorder = false
@@ -3491,7 +3512,11 @@ function Menu:setup(k)
         end)
         self:tween(tn, nn, {w=W(), h=H()}, "out-quad")
     end)
-    
+    self.wangle = 0
+    local vw = W()*.65
+    local vh = lg.getFont():getHeight()*2
+    self.version = gooi.newLabel({text="ver. 1.2",w=vw,h=vh,x=W()/2-vw/2, y=self.play.y-vh*4})
+    self.version.fgColor = {0,0,0,0}
     self:after(tn*2, function()
         local nn = toybox.NewBaseObject({
             w = W(), h = H(), x = 0, y = 0,
@@ -3510,6 +3535,7 @@ function Menu:setup(k)
     
         self:tween(1.3, nn, {w=W(), h=H()}, "in-bounce",function()
             self:tween(.65, self, {tapAlpha=1}, "in-quad")
+            self:tween(2.2, self.whatsapp, {w=whw,h=whh}, "in-bounce")
             self:tween(1.4, self, {tapAlpha2=1}, "in-quad", jigg)
             self:every(5, self.makeNewText)
             self.makeNewText()
@@ -3602,6 +3628,14 @@ end
 
 function Menu:draw(dt)
     
+    gooi.drawComponent(self.whatsapp)
+    self.wangle = (not self.wjigged and 0 or self.wangle or 0)+dt*35
+    local w = self.whatsapp
+    if w and self then
+        local ang = math.rad(self.wangle)
+        w.x = self.play.x+self.play.w/4+lendir_x(self.wx/2, ang)
+        w.y = self.play.y+self.play.h/4+lendir_y(self.wx/2, ang)
+    end
     
     if false then
         self.bar:draw()
@@ -3642,7 +3676,8 @@ function Menu:draw(dt)
     self.whatsappImage.alpha = self.tapAlpha2
     self.whatsapp.angle = self.whatsappJiggle.shake_x
     
-    gooi.drawComponent(self.whatsapp)
+    self.version.fgColor[4] = self.tapAlpha2*.8
+    
     local _w, _h = resizeImage(img, W(), H())
    -- lg.draw(img, 0, 0, 0, _w, _h)
    
