@@ -1,6 +1,7 @@
 Android Port of LÖVE, an awesome 2D game engine for Lua (http://love2d.org)  
 Copyright (c) 2006-2024 LOVE Development Team
 
+
 ![Build Status](https://github.com/love2d/love-android/workflows/build/badge.svg)
 
 Download:
